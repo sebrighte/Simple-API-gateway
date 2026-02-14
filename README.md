@@ -34,7 +34,7 @@ It allows you to:
 
     project/
     │
-    ├── gateway.py              # Main FastAPI gateway
+    ├── gateway.py             # Main FastAPI gateway
     ├── services.json          # Services configuration
     ├── api_key.txt            # Gateway API key
     │
