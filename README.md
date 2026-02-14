@@ -65,49 +65,59 @@ pip install fastapi uvicorn httpx jinja2 python-multipart
 
 ### services.json
 
-Example:
+This JSON file serves as a centralized configuration for multiple web services accessible through an API gateway or client application. It defines essential connection details, authentication parameters, and API documentation references for each service, enabling consistent and secure integration.
 
-    {
-    "services": [
+**Structure Overview:**
+
+services: An array of service objects, where each object represents a distinct web service. Each service object typically includes:
+- **name** – The identifier for the service.
+- **endpoint** – The base URL for accessing the service API.
+- **swagger/openapi** – URL pointing to the service’s OpenAPI or Swagger specification for documentation and automated client generation.
+- **authentication details** – Information on required API keys or gateway keys, including location (query/header), whether it’s required, schema type, default value, and description.
+
+**Key Features:**
+
+- **Centralized Service Configuration** – Consolidates all service endpoints, API keys, and gateway settings into a single, maintainable file.
+- **API Documentation Integration** – Includes OpenAPI/Swagger links to enable automated testing, client generation, and consistent integration.
+- **Flexible Authentication Support** – Allows per-service and global gateway keys, providing layered security for different access levels.
+- **Extensible Design** – Additional services can be added by appending new objects to the services array without impacting existing entries.
+- **Machine-Readable Format** – JSON structure allows easy parsing and use by client applications, scripts, or integration tools.
+
         {
-        "name": "users",
-        "endpoint": "http://localhost:8001",
-        "swagger": "http://localhost:8001/openapi.json",
-        "security": [],
-        "securitySchemes": [],
-        "gateway_api": {
-            "name": "gateway_key",
-            "in": "query",
-            "required": true,
-            "schema": {
-            "type": "string"
-            }
+            "services": [
+                {
+                "name": "users",
+                "endpoint": "http://localhost:8001",
+                "swagger": "http://localhost:8001/openapi.json",
+                "security": [],
+                "securitySchemes": [],
+                "gateway_api": {
+                    "name": "gateway_key",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                        }
+                    }
+                }
+            ]
         }
-        }
-    ]
-    }
 
 ------------------------------------------------------------------------
 
 ## Running the Gateway
 
-python gateway.py
-
+- python gateway.py
 or
-
-uvicorn gateway:app --reload --port 8005
+- uvicorn gateway:app --reload --port 8005
 
 ------------------------------------------------------------------------
 
 ## Security
+- Uses gateway_key query parameter
+- Stored in api_key.txt
 
-Uses gateway_key query parameter
-
-Stored in api_key.txt
-
-Example:
-
-?gateway_key=my-secret-key
+Example: ?gateway_key=my-secret-key
 
 ------------------------------------------------------------------------
 
@@ -130,60 +140,48 @@ Example:
 ## Logging
 
 Saved in:
-
-app.log
+- app.log
 
 ------------------------------------------------------------------------
 
 ## Static Files
 
 Served from:
-
-/static
+- /static
 
 ------------------------------------------------------------------------
 
 ## Templates
 
 Jinja2 templates:
-
-templates/
+- templates/
 
 ------------------------------------------------------------------------
 
 ## CORS
 
-Currently allows all origins
-
-Production should restrict
+- Currently allows all origins
+- Production should restrict
 
 ------------------------------------------------------------------------
 
 ## Production Recommendations
 
-Use HTTPS
-
-Restrict CORS
-
-Secure API keys
-
-Use environment variables
-
-Add authentication
+- Use HTTPS
+- Restrict CORS
+- Secure API keys
+- Use environment variables
+- Add authentication
 
 ------------------------------------------------------------------------
 
 ## Supported Methods
 
-GET
-
-POST
-
-PUT
-
-PATCH
-
-DELETE
+- GET
+- POST
+- PUT
+- PATCH
+- DELETE
 
 ------------------------------------------------------------------------
 
@@ -195,31 +193,19 @@ uvicorn gateway:app --reload
 
 ## Limitations
 
-No rate limiting
-
-No load balancing
-
-Basic security
+- No rate limiting
+- No load balancing
+- Basic security
 
 ------------------------------------------------------------------------
 
 ## Future Improvements
 
-JWT auth
-
-Rate limiting
-
-Docker
-
-Kubernetes
-
-Monitoring
-
-------------------------------------------------------------------------
-
-## License
-
-CC BY-SA 4.0
+- JWT auth
+- Rate limiting
+- Docker
+- Kubernetes
+- Monitoring
 
 ------------------------------------------------------------------------
 
@@ -227,12 +213,8 @@ CC BY-SA 4.0
 
 Provides:
 
-Unified gateway
-
-Swagger aggregation
-
-Security
-
-Routing
-
-Microservice support
+- Unified gateway
+- Swagger aggregation
+- Security
+- Routing
+- Microservice support
