@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>API Gateway (React) V2</title>
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Swagger UI JS -->
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+
+  <!-- Local -->
+  <link rel="icon" href="{{ url_for('static', path='logo.png') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  <script type="text/babel" src="{{ url_for('static', path='index.js') }}"></script>
+
+</head>
+
+<body>
+  <div id="root"></div>
+</body>
+
+</html>

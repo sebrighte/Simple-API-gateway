@@ -1,0 +1,59 @@
+{
+    "services": [
+        {
+            "name": "httpbin",
+            "endpoint": "https://httpbin.org/",
+            "swagger": "https://httpbin.org/spec.json",
+            "gateway_api": {
+                "name": "gateway_key",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "default": "apikey123"
+                },
+                "description": "Gateway API key"
+            }
+        },
+        {
+            "name": "tides",
+            "endpoint": "https://sebright.uksouth.cloudapp.azure.com/api/TidesSDK/",
+            "swagger": "https://sebright.uksouth.cloudapp.azure.com/api/TidesSDK/swagger/docs/v1",
+            "api_key": {
+                "name": "api_key",
+                "in": "query",
+                "required": "True",
+                "schema": {
+                    "type": "string",
+                    "default": "ukho_337900"
+                },
+                "description": "API key"
+            },
+            "gateway_api": {
+                "name": "gateway_key",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "default": "ukho_337900"
+                },
+                "description": "Gateway API key"
+            }
+        },
+        {
+            "name": "wurdle",
+            "endpoint": "http://ociweb.ddns.net:8010/",
+            "swagger": "http://ociweb.ddns.net:8010/openapi.json",
+            "gateway_api": {
+                "name": "gateway_key",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "default": "ukho_337900"
+                },
+                "description": "Gateway API key"
+            }
+        }
+    ]
+}
