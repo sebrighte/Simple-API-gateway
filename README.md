@@ -3,13 +3,14 @@
 ## Overview
 
 This project is a FastAPI-based API Gateway that aggregates multiple
-backend services into a single unified entry point.
+backend services into a single unified secured entry point.
 
 It allows you to:
 
 -   Route requests to multiple microservices
--   Enforce a global gateway_key
+-   Enforce a global gateway securiyt (key)
 -   Merge Swagger/OpenAPI documentation
+-   Create bespoke swagger for each service
 -   Provide unified API access
 -   Dynamically update services
 
@@ -34,14 +35,14 @@ It allows you to:
 
     project/
     │
-    ├── gateway.py             # Main FastAPI gateway
-    ├── services.json          # Services configuration
-    ├── api_key.txt            # Gateway API key
+    ├── gateway.py                 # Main FastAPI gateway
+    ├── services.json              # Services configuration
+    ├── api_key.txt                # Gateway API key
     │
     ├── templates/
-    │   ├── index.html
-    │   ├── swagger.html
-    │   └── swaggerOpenAPI.html
+    │   ├── index.html             # React site to manage services
+    │   ├── swagger.html           # View orogonal swagger
+    │   └── swaggerOpenAPI.html    #View gatway enabled swagger
     │
     ├── static/
     │
@@ -58,6 +59,21 @@ Python 3.9 or newer
 Install dependencies:
 
 pip install fastapi uvicorn httpx jinja2 python-multipart
+
+------------------------------------------------------------------------
+
+## APIs
+
+/: index.htlm (React UI to magae services, Return TemplateResponse)
+/doc: Gateway API Swagger UI
+/redoc: ateway API ReDoc UI
+/openapi/{name}: Retuen the OpenAPI for named service (JSON file below, Return HTMLResponse)
+/services: List the services managed in the gateway (Return services)
+/update: Update a service in the gateway (Return updated services)
+/check-website: Check to see if site is OK 200 (Return Treu of False)
+/origswagger/{title}/{encoded_url:path}: Get original swagger of sevoce in gateway (Return HTMLResponse)
+/swagger/{name}: Get the gateway enabled swagger page (Return HTML)
+/{service}/{path:path}: back end to call service method (Return JSON)
 
 ------------------------------------------------------------------------
 
