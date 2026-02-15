@@ -39,16 +39,16 @@ It allows you to:
     ├── services.json              # Services configuration
     ├── api_key.txt                # Gateway API key
     │
-    ├── templates/
+    ├── templates/                 # FastAPI HTML Templates
     │   ├── index.html             # React site to manage services
     │   ├── swagger.html           # View orogonal swagger
-    │   └── swaggerOpenAPI.html    #View gatway enabled swagger
+    │   └── swaggerOpenAPI.html    # View gatway enabled swagger
     │
-    ├── static/
+    ├── static/                    # FastAPI static data
     │
-    ├── app.log
+    ├── app.log                    # Log all requests, info and errors
     │
-    └── README.md
+    └── README.md                  # This page
 
 ------------------------------------------------------------------------
 
@@ -66,7 +66,7 @@ pip install fastapi uvicorn httpx jinja2 python-multipart
 
 /: index.htlm (React UI to magae services, Return TemplateResponse)
 /doc: Gateway API Swagger UI
-/redoc: ateway API ReDoc UI
+/redoc: Gateway API ReDoc UI
 /openapi/{name}: Retuen the OpenAPI for named service (JSON file below, Return HTMLResponse)
 /services: List the services managed in the gateway (Return services)
 /update: Update a service in the gateway (Return updated services)
