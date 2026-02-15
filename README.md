@@ -1,5 +1,7 @@
 # API Gateway (FastAPI) -- Full Documentation
 
+Ernie Sebright
+
 ## Overview
 
 This project is a FastAPI-based API Gateway that aggregates multiple
