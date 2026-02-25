@@ -25,6 +25,14 @@ def getAPIKey():
     with open("api_key.txt") as f:
         return f.read().strip()
 
+def getLocalSpecs():
+    from pathlib import Path
+    folder = Path("static/OpenAPI/")
+    json_files = list(folder.glob("*.json"))
+    return [x.stem for x in json_files]
+    #for file in json_files:
+    #    print(file.stem)
+
 async def serviceSwagger(name):
     time.sleep(5)  # Delay to allow services_json to start
     combined_paths = {}
@@ -106,6 +114,7 @@ async def serviceSwagger(name):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
     time.sleep(5)  # Delay to allow services_json to start
     combined_paths = {}
     combined_components = {
@@ -254,10 +263,31 @@ async def get_swagger1(name: str, request: Request):
     template = templates.get_template("swagger.html")
     html = template.render(
         request=request,
-        #name=f("/openapi/{name}?gateway_key={get_api_key()}")
+        #name=f("/openapi/{name}?gateway_key={getAPIKey()}")
         name=f"/openapi/{name}"
     )
     return html
+
+@app.get("/files")
+async def files():
+    #getLocalSpecs()
+    return getLocalSpecs()
+
+@app.get("/swaggerfile/{name}", response_class=HTMLResponse)
+async def get_swagger1(name: str, request: Request):
+
+    template = templates.get_template("swaggerOpenAPI.html")
+
+    with open(f"static/OpenAPI/{name}.json") as f:
+        data = json.load(f)
+
+    html = template.render(
+        name=name,
+        request=request,
+        openapi=json.dumps(data)
+    )
+
+    return HTMLResponse(content=html, status_code=200)
 
 async def forward_request(service_url: str, method: str, path: str, body=None, headers=None):
     import httpx
@@ -312,7 +342,7 @@ async def gateway(service: str, path: str, request: Request):
         headers
     )
 
-    valid_key = get_api_key()
+    valid_key = getAPIKey()
     gateway_key = request.query_params.get("gateway_key")  # safe, returns None if missing
 
     if not gateway_key or gateway_key != valid_key:

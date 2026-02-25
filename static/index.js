@@ -65,14 +65,23 @@ const { createRoot } = ReactDOM;
 const { useRef } = React;
 
 const Sidebar = ({ setMenu, setTitle }) => {
+    const [specs, setSpecs] = useState([]);//useState(["traccar", "homeassistant"]);
     function handleClick(action, title) {
         setMenu(action);
     }
+
+    useEffect(() => {
+        fetch("/files")   // ← your endpoint
+            .then(res => res.json())
+            .then(data => setSpecs(data))
+            .catch(err => console.error("Error loading files:", err));
+    }, []);
+
     return (
         <div className="sidebar">
             <img
                 src="/static/logo.png"
-                alt="Logo"
+                alt="Sebright Software Logo"
                 width="100%"
             />
             <a>
@@ -85,6 +94,13 @@ const Sidebar = ({ setMenu, setTitle }) => {
                     Manage APIs
                 </li>
                 <li onClick={() => window.open("/docs", "_blank")}>Gateway OpenAPI</li>
+            </ul>
+
+            <h2>Local OpenAPI</h2>
+            <ul>
+                {specs.map(name => (
+                   <li key={name}><a target="_blank" rel="noreferrer" href={`/swaggerfile/${name}`}>{name}</a></li>
+                ))}
             </ul>
         </div>
     );
@@ -188,7 +204,7 @@ function ServiceEditor({ services, menu, setServices }) {
     };
 
     const openOrigSwagger = (title, base, swagger) => {
-        const url = `/origswagger/${title}/${swagger}`;
+        const url = `/origswagger/${title}/${base}${swagger}`;
         window.open(url, "_blank"); // Opens in a new tab
     };
 
