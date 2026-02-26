@@ -52,8 +52,9 @@ This solution allows you to:
     │   └── swaggerOpenAPI.html
     │
     ├── static/
-    │   ├── [images]
     │   ├── OpenAPI Specifications
+    │       ├── httpbin.json    # Worling example OpenAPI Spec
+    │   ├── [images *.*]
     │   ├── javasript files
     │   ├── CSS files
     │
