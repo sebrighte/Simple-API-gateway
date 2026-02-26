@@ -1,17 +1,21 @@
-# API Gateway (FastAPI) -- Full Documentation
+# Simple API Gateway (FastAPI)
 
 ## Overview
 
 This project is a FastAPI-based API Gateway that aggregates multiple
-backend services into a single unified entry point.
+backend services into a single unified entry point. 
 
-It allows you to:
+I just wanted a simple implementation where i could expose internal and external through one managed interface
 
--   Route requests to multiple microservices
+This solution allows you to:
+
+-   Route requests to multiple (micro) services
 -   Enforce a global gateway_key
 -   Merge Swagger/OpenAPI documentation
+-   Provide per-service API Swagger/OpenAPI documentation
 -   Provide unified API access
 -   Dynamically update services
+-   Allow local hosting of OpenAPI specification (where they dont exist or you need to modify)
 
 ------------------------------------------------------------------------
 
@@ -34,16 +38,24 @@ It allows you to:
 
     project/
     │
-    ├── gateway.py              # Main FastAPI gateway
-    ├── services.json          # Services configuration
-    ├── api_key.txt            # Gateway API key
+    ├── gateway.py             # Main FastAPI gateway Python 3
+    ├── services.json          # Services configuration JSON
+    ├── api_key.txt            # Gateway API key Text
+    ├── dockerfile             # Create docker image for Gateway
+    ├── app.lo                 # Log all Gateway requests, info and issues
+    ├── instructions.txt       # Scripts for environments and deployment
+    ├── orig.py                # original code by Franklyn Dunbar
     │
     ├── templates/
-    │   ├── index.html
+    │   ├── index.html         # Default page
     │   ├── swagger.html
     │   └── swaggerOpenAPI.html
     │
     ├── static/
+    │   ├── [images]
+    │   ├── OpenAPI Specifications
+    │   ├── javasript files
+    │   ├── CSS files
     │
     ├── app.log
     │
