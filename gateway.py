@@ -46,6 +46,14 @@ async def serviceSwagger(name):
 
     async with httpx.AsyncClient(verify=False) as client:
         service = next((s for s in loadServices() if s["name"] == name), None)
+        if service is None and name == "gateway": 
+           return get_openapi(
+                title="API Gateway",
+                version="1.0.0",
+                description=f"API Gateway for API Services<br>These are the services for this application",
+                routes=app.routes,
+            )
+
         name = service.get("name")
         endpoint = service.get("endpoint")
         swagger = service.get("swagger")

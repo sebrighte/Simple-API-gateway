@@ -25,6 +25,7 @@ class cls_services {
         service.title = title;
         service.endpoint = base;
         service.swagger = swagger;
+        this.syncService();
         return new cls_services(JSON.parse(JSON.stringify(this.services)));
     }
 
@@ -81,7 +82,6 @@ const Sidebar = ({ setMenu, setTitle }) => {
         <div className="sidebar">
             <img
                 src="/static/logo.png"
-                alt="Sebright Software Logo"
                 width="100%"
             />
             <a>
@@ -90,16 +90,15 @@ const Sidebar = ({ setMenu, setTitle }) => {
             <h2>Main Menu</h2>
             <ul>
                 <li onClick={() => handleClick("Home", "API Overview")}>Overview</li>
-                <li onClick={() => handleClick("APIs", "Add or Edit APIs")}>
-                    Manage APIs
-                </li>
+                <li onClick={() => handleClick("APIs", "Add or Edit APIs")}>Manage APIs</li>
                 <li onClick={() => window.open("/docs", "_blank")}>Gateway OpenAPI</li>
+                <li onClick={() => window.open("/swagger/gateway", "_blank")}>App OpenAPI</li>
             </ul>
 
             <h2>Local OpenAPI</h2>
             <ul>
                 {specs.map(name => (
-                   <li key={name}><a target="_blank" rel="noreferrer" href={`/swaggerfile/${name}`}>{name}</a></li>
+                    <li key={name}><a target="_blank" rel="noreferrer" href={`/swaggerfile/${name}`}>{name}</a></li>
                 ))}
             </ul>
         </div>
@@ -154,7 +153,7 @@ function ServiceEditor({ services, menu, setServices }) {
         setForm({
             title: "newtides",
             base: "https://sebright.uksouth.cloudapp.azure.com/api/TidesSDK/k",
-            swagger: "swagger/docs/v1",
+            swagger: "https://sebright.uksouth.cloudapp.azure.com/api/TidesSDK/swagger/docs/v1",
         });
     };
 
@@ -181,6 +180,7 @@ function ServiceEditor({ services, menu, setServices }) {
             alert("All fields are required");
             return;
         }
+        console.log("Update");
         setServices(services.updateService(form.title, form.base, form.swagger));
         setEditing(null);
     };
@@ -194,7 +194,8 @@ function ServiceEditor({ services, menu, setServices }) {
                 } else {
                     setStatus("❌");
                 }
-            });
+            }
+        );
     };
 
     const openSwagger = (serviceName) => {
