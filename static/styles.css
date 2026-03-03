@@ -7,20 +7,28 @@ body {
     margin: 0;
     background: #f5f7fa;
     color: #1f2937;
+    height: 100%;
 }
 
 .app {
     display: flex;
-    height: 100vh;
+    min-height: 100vh;
 }
 
-/* Sidebar */
+/* Sidebar 
 .sidebar {
     width: 230px;
     background: #0b1c2d;
     color: #cbd5e1;
     padding: 16px;
     height: 100vh;
+}*/
+
+.sidebar {
+    width: 230px;
+    background: #0b1c2d;
+    color: #cbd5e1;
+    padding: 16px;
 }
 
 .sidebar h1 {
@@ -103,7 +111,7 @@ tr:hover {
 }
 
 .service-editor {
-    max-width: 600px;
+    max-width: 100%;
     font-family: sans-serif;
 }
 
@@ -170,17 +178,18 @@ tr:hover {
 }
 
 .button-4:disabled {
-    background-color: #FAFBFC;
+    /* background-color: #FAFBFC; */
+    background-color: red;
     border-color: rgba(27, 31, 35, 0.15);
-    color: #959DA5;
-    cursor: default;
+    color: white;
+    cursor: not-allowed;
 }
 
-.button-4:active {
+/* .button-4:active {
     background-color: #EDEFF2;
     box-shadow: rgba(225, 228, 232, 0.2) 0 1px 0 inset;
     transition: none 0s;
-}
+} */
 
 .button-4:focus {
     outline: 1px transparent;
@@ -213,6 +222,12 @@ tr:hover {
     margin-top: 4px;
 }
 
+.editor-panel textarea {
+    width: 100%;
+    padding: 6px;
+    margin-top: 4px;
+}
+
 .editor-panel input[readonly] {
     background-color: lightgrey;   /* light red */
     border: 1px solid red;
@@ -221,4 +236,11 @@ tr:hover {
 
 .editor-actions button {
     margin-right: 10px;
+}
+
+a {
+    color: #cbd5e1;
+    text-decoration: none;
+    text-transform: capitalize;
+    /* bright blue */
 }

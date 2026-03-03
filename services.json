@@ -4,16 +4,20 @@
             "name": "httpbin",
             "endpoint": "https://httpbin.org/",
             "swagger": "https://httpbin.org/spec.json",
-            "gateway_api": {
-                "name": "gateway_key",
-                "in": "query",
-                "required": true,
-                "schema": {
-                    "type": "string",
-                    "default": "apikey123"
-                },
-                "description": "Gateway API key"
-            }
+            "state": false,
+            "config": {
+                "gateway_api": {
+                    "name": "gateway_key",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                        "type": "string",
+                        "default": "apikey123"
+                    },
+                    "description": "Gateway API key"
+                }
+            },
+            "title": "httpbin"
         }
     ]
 }

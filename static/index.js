@@ -1,8 +1,9 @@
 class cls_services {
     constructor(json_services) {
         this.services = json_services.map(
-            ({ name, endpoint, swagger }) => new cls_service(name, endpoint, swagger)
+            ({ name, endpoint, swagger, state, config }) => new cls_service(name, endpoint, swagger, state, config)
         );
+        this.JSON_Version = "1.0.6"
     }
     getService(name) {
         return this.services.find((service) => service.name === name) || null;
@@ -25,6 +26,7 @@ class cls_services {
         service.title = title;
         service.endpoint = base;
         service.swagger = swagger;
+        //console.log(service);
         this.syncService();
         return new cls_services(JSON.parse(JSON.stringify(this.services)));
     }
@@ -54,24 +56,29 @@ class cls_services {
 }
 
 class cls_service {
-    constructor(name, endpoint, swagger) {
+    constructor(name, endpoint, swagger, state, config) {
         this.name = name;
         this.endpoint = endpoint;
         this.swagger = swagger;
+        this.state = state;
+        this.config = config;
     }
 }
+
+let UI_Version = "1.0.6"
 
 const { useState, useEffect, exports } = React;
 const { createRoot } = ReactDOM;
 const { useRef } = React;
 
 const Sidebar = ({ setMenu, setTitle }) => {
-    const [specs, setSpecs] = useState([]);//useState(["traccar", "homeassistant"]);
+    const [specs, setSpecs] = useState([]);
     function handleClick(action, title) {
         setMenu(action);
     }
 
     useEffect(() => {
+        document.title = 'API Gateway v' + UI_Version;
         fetch("/files")   // ← your endpoint
             .then(res => res.json())
             .then(data => setSpecs(data))
@@ -85,8 +92,8 @@ const Sidebar = ({ setMenu, setTitle }) => {
                 width="100%"
             />
             <a>
-                <h1>API Gateway</h1>
-            </a>
+                <h1>API Gateway </h1>
+            </a><hr></hr>
             <h2>Main Menu</h2>
             <ul>
                 <li onClick={() => handleClick("Home", "API Overview")}>Overview</li>
@@ -94,13 +101,15 @@ const Sidebar = ({ setMenu, setTitle }) => {
                 <li onClick={() => window.open("/docs", "_blank")}>Gateway OpenAPI</li>
                 <li onClick={() => window.open("/swagger/gateway", "_blank")}>App OpenAPI</li>
             </ul>
-
+            <hr></hr>
             <h2>Local OpenAPI</h2>
             <ul>
                 {specs.map(name => (
-                    <li key={name}><a target="_blank" rel="noreferrer" href={`/swaggerfile/${name}`}>{name}</a></li>
+                    <li key={name}><a target="_blank" href={`/swaggerfile/${name}`}>{name}</a></li>
                 ))}
             </ul>
+            <hr></hr>
+            <small>UI Version: {UI_Version}</small>
         </div>
     );
 };
@@ -134,7 +143,7 @@ const Panel = ({ services, menu }) => {
 
 function ServiceEditor({ services, menu, setServices }) {
     const [editing, setEditing] = useState(null);
-    const [form, setForm] = useState({ name: "", endpoint: "", swagger: "" });
+    const [form, setForm] = useState({ name: "", endpoint: "", swagger: "", config: "" });
     const [status, setStatus] = useState("");
 
     if (!services || services.length === 0) return null;
@@ -145,6 +154,7 @@ function ServiceEditor({ services, menu, setServices }) {
             title,
             base: services.getService(title).endpoint,
             swagger: services.getService(title).swagger,
+            config: JSON.stringify(services.getService(title).config)
         });
     };
 
@@ -152,8 +162,9 @@ function ServiceEditor({ services, menu, setServices }) {
         setEditing("new");
         setForm({
             title: "newtides",
-            base: "https://sebright.uksouth.cloudapp.azure.com/api/TidesSDK/k",
+            base: "https://sebright.uksouth.cloudapp.azure.com/api/TidesSDK/",
             swagger: "https://sebright.uksouth.cloudapp.azure.com/api/TidesSDK/swagger/docs/v1",
+            config: "...",
         });
     };
 
@@ -180,7 +191,6 @@ function ServiceEditor({ services, menu, setServices }) {
             alert("All fields are required");
             return;
         }
-        console.log("Update");
         setServices(services.updateService(form.title, form.base, form.swagger));
         setEditing(null);
     };
@@ -195,7 +205,7 @@ function ServiceEditor({ services, menu, setServices }) {
                     setStatus("❌");
                 }
             }
-        );
+            );
     };
 
     const openSwagger = (serviceName) => {
@@ -205,7 +215,7 @@ function ServiceEditor({ services, menu, setServices }) {
     };
 
     const openOrigSwagger = (title, base, swagger) => {
-        const url = `/origswagger/${title}/${base}${swagger}`;
+        const url = `/origswagger/${title}/${swagger}`;
         window.open(url, "_blank"); // Opens in a new tab
     };
 
@@ -221,15 +231,27 @@ function ServiceEditor({ services, menu, setServices }) {
                             <div className="service-details">
                                 <small>{"Base URL: " + service.endpoint}</small>
                                 <small>{"OpenAPI: " + service.swagger}</small>
+                                <small>{"Config: [Select EDIT to view]"}</small>
                                 <small>
                                     <a
                                         href={service.swagger}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
-                                        Link
                                     </a>
                                 </small>
+
+                                <small>
+                                    <input type="checkbox" id="gateway_key" disabled={true} checked={"gateway_api" in (service?.config || {})} />
+                                    <label htmlFor="gateway_key"> Gateway key Required</label>
+                                    <br />
+                                    <input type="checkbox" id="api_key" disabled={true} checked={"api_key" in (service?.config || {})} />
+                                    <label htmlFor="api_key"> API key Required</label>
+                                    <br />
+                                    <input type="checkbox" id="api_key" disabled={true} checked={"security" in (service?.config || {})} />
+                                    <label htmlFor="api_key"> Security Enabled</label>
+                                </small>
+
                             </div>
                             <div className="service-actions">
                                 <button
@@ -246,6 +268,7 @@ function ServiceEditor({ services, menu, setServices }) {
                                 </button>
                                 <button
                                     className="button-4"
+
                                     onClick={() => openSwagger(service.name)}
                                 >
                                     Test
@@ -292,6 +315,14 @@ function ServiceEditor({ services, menu, setServices }) {
                             />
                         </label>
 
+                        <label>
+                            Config:
+                            <textarea 
+                                value={form.config}
+                                onChange={(e) => setForm({ ...form, config: e.target.value })}
+                            />
+                        </label>
+
                         <div className="editor-actions">
                             {editing === "new" ? (
                                 <button className="button-4" onClick={add}>
@@ -327,44 +358,6 @@ function ServiceEditor({ services, menu, setServices }) {
     }
 }
 
-const SwaggerComponent = ({ menu, swagger, services }) => {
-    const swaggerRef = React.useRef(null);
-    const swaggerInstanceRef = React.useRef(null);
-
-    useEffect(() => {
-        if (menu.includes("Swagger") && swaggerRef.current) {
-            swaggerInstanceRef.current = SwaggerUIBundle({
-                url: "openapi.json",
-                domNode: swaggerRef.current,
-                presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
-                layout: "BaseLayout",
-            });
-        }
-        return () => {
-            if (swaggerRef.current) {
-                swaggerRef.current.innerHTML = "";
-            }
-            swaggerInstanceRef.current = null;
-        };
-    }, [menu]);
-
-    return <div ref={swaggerRef} />;
-};
-
-function fetchJSON(url, passedFunction = null) {
-    fetch(url)
-        .then((res) => {
-            if (!res.ok) {
-                throw new Error("Failed to fetch");
-            }
-            return res.json();
-        })
-        .then((data) => {
-            passedFunction(data);
-            return data;
-        });
-}
-
 const App = () => {
     const [services, setServices] = useState([]);
     const [swagger, setSwagger] = useState("");
@@ -372,6 +365,8 @@ const App = () => {
     const [error, setError] = useState(null);
     const [menu, setMenu] = useState("APIs");
     const [title, setTitle] = useState("Gateway Settings");
+
+    //console.log(services);
 
     useEffect(() => {
         fetch("/services")

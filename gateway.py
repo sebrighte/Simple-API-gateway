@@ -15,11 +15,24 @@ import time
 from contextlib import asynccontextmanager
 import uvicorn
 import json
-import logging
+import logging, requests
+
+appVersion = "1.0.1"
+
+def url_exists(url):
+    try:
+        response = requests.head(url,timeout=1)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
 
 def loadServices():
     with open("services.json") as f:
-        return json.load(f)["services"]
+        svs = json.load(f)["services"]
+        # for sv in svs: 
+        #     sv["state"] = url_exists(sv['swagger'])
+        #print(svs)
+        return svs
 
 def getAPIKey():
     with open("api_key.txt") as f:
@@ -58,9 +71,10 @@ async def serviceSwagger(name):
         endpoint = service.get("endpoint")
         swagger = service.get("swagger")
         security = service.get("security") 
-        securitySchemes = service.get("securitySchemes")
-        gateway_api = service.get("gateway_api") 
-        api_key = service.get("api_key") 
+        config = service.get("config") 
+        securitySchemes = config.get("securitySchemes")
+        gateway_api = config.get("gateway_api") 
+        api_key = config.get("api_key") 
 
         try:
             # Fetch the OpenAPI schema from the service
@@ -104,7 +118,7 @@ async def serviceSwagger(name):
             title="API Gateway",
             version="1.0.0",
             description=f"API Gateway for API Services<br>Develeoped By Sebright Software<br>Version 1.0.1 <br><br><b><u>OpenAPI Details</u></b><ul><li><b>Security:</b> {security}</li><li><b>Security Scheme:</b> {securitySchemes}</li><li><b>Global ApiKey:</b> {gateway_api}</li></ul>",
-            routes=app.routes,
+            routes=None,
         )
         if security: openapi_schema["security"] = security
         if combined_tags: openapi_schema["tags"] = combined_tags
@@ -118,7 +132,6 @@ async def serviceSwagger(name):
     print(f"Created local OpenAPI for {service["name"]}")
     # Assign the custom OpenAPI schema
     return custom_openapi()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -234,12 +247,17 @@ async def getopenapi(name):
 def services():
     return loadServices()
 
+@app.get("/version")
+def version():
+    return appVersion
+
 @app.post("/update")
 async def update_gateway(request: Request):
     global services_json
     payload = await request.json()
     with open("services.json", "w") as f:
         json.dump(payload, f, indent=4)
+        #print(payload)
     return loadServices()
 
 @app.get("/check-website")
