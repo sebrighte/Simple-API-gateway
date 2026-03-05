@@ -2,7 +2,7 @@
 # Posted by Franklyn Dunbar, modified by community. See post 'Timeline' for change history
 # Retrieved 2026-01-22, License - CC BY-SA 4.0
 
-from fastapi import FastAPI, HTTPException, Request, Query, Response, APIRouter, Depends
+from fastapi import FastAPI, HTTPException, Request, Query, Response, APIRouter, Depends, status
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
@@ -16,8 +16,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 import json
 import logging, requests
-
-appVersion = "1.0.1"
+from versions import *
 
 def url_exists(url):
     try:
@@ -29,6 +28,10 @@ def url_exists(url):
 def loadServices():
     with open("services.json") as f:
         svs = json.load(f)["services"]
+        # for sv in svs:
+        #     if isinstance(sv, dict):
+        #         sv.setdefault("version", appVersion)
+        #if isinstance(svs, dict): sv.setdefault("version", appVersion)
         # for sv in svs: 
         #     sv["state"] = url_exists(sv['swagger'])
         #print(svs)
@@ -70,17 +73,24 @@ async def serviceSwagger(name):
         name = service.get("name")
         endpoint = service.get("endpoint")
         swagger = service.get("swagger")
-        security = service.get("security") 
-        config = service.get("config") 
-        securitySchemes = config.get("securitySchemes")
-        gateway_api = config.get("gateway_api") 
-        api_key = config.get("api_key") 
+
+        
+        config = service.get("config", None)
+        security = config.get("security", None)
+        securitySchemes = config.get("securitySchemes", None)
+        gateway_api = config.get("gateway_api", None)
+        api_key = config.get("api_key", None)
 
         try:
             # Fetch the OpenAPI schema from the service
-            response = await client.get(swagger)  #+ "/openapi.json")
-            response.raise_for_status()
-            openapi_schema = response.json()
+            if "local:" in swagger:
+                file_path = swagger.replace("local:","")
+                with open(file_path, "r", encoding="utf-8") as f:
+                    openapi_schema = json.load(f)
+            else:
+                response = await client.get(swagger)  #+ "/openapi.json")
+                response.raise_for_status()
+                openapi_schema = response.json()
 
             for path, methods in openapi_schema.get("paths", {}).items():
                 new_path = f"/{service['name']}{path}"
@@ -89,10 +99,10 @@ async def serviceSwagger(name):
                     params = operation.setdefault("parameters", [])
 
                     # avoid duplicates
-                    if gateway_api and not any(p["name"] == "gateway_key" and p["in"] == "query" for p in params):
+                    if gateway_api and not any(p.get("name") == "gateway_key" and p.get("in") == "query" for p in params):
                         gateway_api['schema']['default'] = getAPIKey() or False
                         params.append(gateway_api)
-                    if api_key and not any(p["name"] == "api_key" and p["in"] == "query" for p in params):
+                    if api_key and not any(p.get("name") == "api_key" and p.get("in") == "query" for p in params):
                         params.append(api_key)
 
                 combined_paths[new_path] = methods
@@ -117,7 +127,7 @@ async def serviceSwagger(name):
         openapi_schema = get_openapi(
             title="API Gateway",
             version="1.0.0",
-            description=f"API Gateway for API Services<br>Develeoped By Sebright Software<br>Version 1.0.1 <br><br><b><u>OpenAPI Details</u></b><ul><li><b>Security:</b> {security}</li><li><b>Security Scheme:</b> {securitySchemes}</li><li><b>Global ApiKey:</b> {gateway_api}</li></ul>",
+            description=f"API Gateway for API Services<br>Develeoped By Sebright Software<br>Version 1.0.1 <br><br><b><u>gateway OpenAPI Config</u></b><ul><li><b>Security:</b> {security}</li><li><b>Security Scheme:</b> {securitySchemes}</li><li><b>Global ApiKey:</b> {gateway_api}</li></ul>",
             routes=None,
         )
         if security: openapi_schema["security"] = security
@@ -125,11 +135,13 @@ async def serviceSwagger(name):
         if combined_paths: openapi_schema["paths"] = combined_paths
         if combined_components: openapi_schema["components"] = combined_components
         if securitySchemes: openapi_schema["components"]["securitySchemes"] = securitySchemes
+
+        #print(openapi_schema["components"]["securitySchemes"])
         
         app.openapi_schema = openapi_schema
         return app.openapi_schema
 
-    print(f"Created local OpenAPI for {service["name"]}")
+    #print(f"Created local OpenAPI for {service["name"]}")
     # Assign the custom OpenAPI schema
     return custom_openapi()
 
@@ -155,13 +167,23 @@ async def lifespan(app: FastAPI):
             security = service.get("security") 
             securitySchemes = service.get("securitySchemes")
             gateway_api = service.get("gateway_api") 
+            local = ""
 
             try:
                 #print(url)
                 # Fetch the OpenAPI schema from the service
-                response = await client.get(swagger)
-                response.raise_for_status()
-                openapi_schema = response.json()
+                # response = await client.get(swagger)
+                # response.raise_for_status()
+                # openapi_schema = response.json()
+                if "local:" in swagger:
+                    local = "(local definition)"
+                    file_path = swagger.replace("local:","")
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        openapi_schema = json.load(f)
+                else:
+                    response = await client.get(swagger)  #+ "/openapi.json")
+                    response.raise_for_status()
+                    openapi_schema = response.json()
 
                 security = security
 
@@ -184,7 +206,7 @@ async def lifespan(app: FastAPI):
                         if tag not in combined_tags:
                             combined_tags.append(tag)
 
-                print(f"Loaded OpenAPI for {service["name"]}")
+                print(f"Loaded OpenAPI for {service["name"]} {local}")
 
             except Exception as e:
                 print(f"Error fetching OpenAPI schema from {service["name"]}: {e}")
@@ -239,17 +261,15 @@ app.add_middleware(
 async def read_item(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
-@app.get("/openapi/{name}")
-async def getopenapi(name):
-    return await serviceSwagger(name)
-
 @app.get("/services")
 def services():
     return loadServices()
 
 @app.get("/version")
 def version():
-    return appVersion
+    return {"app": appVersion,
+    "json": jsonVersion,
+    "UI": uiVersion}
 
 @app.post("/update")
 async def update_gateway(request: Request):
@@ -282,6 +302,10 @@ async def get_swagger(title: str, encoded_url: str, request: Request):
         openapi=json.dumps(response.json())
     )
     return HTMLResponse(content=html, status_code=response.status_code)
+
+@app.get("/openapi/{name}")
+async def getopenapi(name):
+    return await serviceSwagger(name)
 
 @app.get("/swagger/{name}", response_class=HTMLResponse)
 async def get_swagger1(name: str, request: Request):
@@ -345,20 +369,39 @@ async def gateway(service: str, path: str, request: Request):
     if not service_obj:
         return JSONResponse(status_code=404, content={"error": "Service not found"})
 
-    print(service_obj.get("securitySchemes"))
+    #print(service_obj.get("securitySchemes", []))
 
-    if 'basic' in service_obj.get("securitySchemes", []):
+    #print(service_obj.get("config", []))
+
+    servive_config = service_obj.get("config", [])
+
+    if 'basic' in servive_config.get("securitySchemes", []):
         if credentials is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required",
+                detail="Authentication required )Basic)",
                 headers={"WWW-Authenticate": "Basic"}
             )
+
+    # if "bearerAuth" in servive_config.get("securitySchemes", {}):
+    #     auth_header = request.headers.get("Authorization")
+    #     #print(auth_header)
+    #     if not auth_header or not auth_header.startswith("Bearer "):
+    #         raise HTTPException(
+    #             status_code=status.HTTP_401_UNAUTHORIZED,
+    #             detail="Authentication required (JWT)",
+    #             headers={"WWW-Authenticate": "Bearer"},
+    #         )
 
     service_url = service_obj.get("endpoint") or ""
 
     body = await request.json() if request.method in ["POST", "PUT", "PATCH"] else None
     headers = dict(request.headers)
+
+    if 'authorization' in headers:
+        headers['Authorization'] = headers.pop('authorization')
+
+    #print(service_url, headers)
 
     response = await forward_request(
         service_url,
@@ -368,18 +411,21 @@ async def gateway(service: str, path: str, request: Request):
         headers
     )
 
-    valid_key = getAPIKey()
     gateway_key = request.query_params.get("gateway_key")  # safe, returns None if missing
 
-    if not gateway_key or gateway_key != valid_key:
+    if not gateway_key or gateway_key != getAPIKey():
         raise HTTPException(status_code=401, detail="gateway_key query parameter is invlaid")
 
     try:
         data = response.json()
     except (json.JSONDecodeError, ValueError):
         data = {
-            "error": "Upstream did not return valid JSON",
-            "status": getattr(response, "status_code", None),
+            #"error": "Upstream did not return valid JSON",
+            #"status": getattr(response, "status_code", None),
+            "url": f"{request.method} {service_url}{path}?{request.url.query}",
+            "response": response.text,
+            **({"body": body} if body is not None else {}),
+            #"headers": headers
         }
 
     return JSONResponse(status_code=response.status_code, content=data)

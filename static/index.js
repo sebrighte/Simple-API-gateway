@@ -1,34 +1,64 @@
 class cls_services {
     constructor(json_services) {
         this.services = json_services.map(
-            ({ name, endpoint, swagger, state, config }) => new cls_service(name, endpoint, swagger, state, config)
+            ({ name, endpoint, swagger, state, config }) =>
+                new cls_service(name, endpoint, swagger, state, config)
         );
-        this.JSON_Version = "1.0.6"
+
+        this.UI_Version = null;
+        this.App_Version = null;
+        this.JSON_Version = null;
     }
+
+    static async create(json_services) {
+        const instance = new cls_services(json_services);
+        await instance.getVersionStatus(); // wait for version data
+        return instance;
+    }
+
+    async getVersionStatus() {
+        const response = await fetch("/version");
+        if (!response.ok) throw new Error("Failed to fetch version");
+        const retVal = await response.json();
+
+        this.UI_Version = retVal?.UI ?? null;
+        this.App_Version = retVal?.app ?? null;
+        this.JSON_Version = retVal?.json ?? null;
+
+        return retVal;
+    }
+
+
+    getDeepCopy() {
+        this.syncService();
+        return new cls_services(JSON.parse(JSON.stringify(this.services)));
+    }
+
     getService(name) {
         return this.services.find((service) => service.name === name) || null;
     }
 
     addService(name, endpoint, swagger) {
         this.services.push(new cls_service(name, endpoint, swagger));
-        this.syncService();
-        return new cls_services(JSON.parse(JSON.stringify(this.services)));
+        //this.syncService();
+        return this.getDeepCopy();
     }
 
     removeService(name) {
         this.services = this.services.filter((service) => service.name !== name);
-        this.syncService();
-        return new cls_services(JSON.parse(JSON.stringify(this.services)));
+        //this.syncService();
+        return this.getDeepCopy();
     }
 
-    updateService(title, base, swagger) {
+    updateService(title, base, swagger, config) {
+        JSON.parse(JSON.stringify(config));
         const service = this.getService(title);
         service.title = title;
         service.endpoint = base;
         service.swagger = swagger;
-        //console.log(service);
+        service.config = config;
         this.syncService();
-        return new cls_services(JSON.parse(JSON.stringify(this.services)));
+        return this.getDeepCopy();
     }
 
     async syncService() {
@@ -55,6 +85,8 @@ class cls_services {
     }
 }
 
+///////////////////////////////////////////////////////////////////
+
 class cls_service {
     constructor(name, endpoint, swagger, state, config) {
         this.name = name;
@@ -65,20 +97,20 @@ class cls_service {
     }
 }
 
-let UI_Version = "1.0.6"
+////////////////////////////////////////////////////////////////////
 
 const { useState, useEffect, exports } = React;
 const { createRoot } = ReactDOM;
 const { useRef } = React;
 
-const Sidebar = ({ setMenu, setTitle }) => {
+const Sidebar = ({ setMenu, services }) => {
     const [specs, setSpecs] = useState([]);
     function handleClick(action, title) {
         setMenu(action);
     }
 
     useEffect(() => {
-        document.title = 'API Gateway v' + UI_Version;
+        document.title = 'API Gateway';
         fetch("/files")   // ← your endpoint
             .then(res => res.json())
             .then(data => setSpecs(data))
@@ -109,7 +141,11 @@ const Sidebar = ({ setMenu, setTitle }) => {
                 ))}
             </ul>
             <hr></hr>
-            <small>UI Version: {UI_Version}</small>
+            <h2>Versions</h2>
+            <div>UI: {services?.UI_Version}</div>
+            <div>JSON: {services.JSON_Version}</div>
+            <div>Application: {services.App_Version}</div><br></br>
+            <hr></hr>
         </div>
     );
 };
@@ -191,7 +227,8 @@ function ServiceEditor({ services, menu, setServices }) {
             alert("All fields are required");
             return;
         }
-        setServices(services.updateService(form.title, form.base, form.swagger));
+        //console.log("Update");
+        setServices(services.updateService(form.title, form.base, form.swagger, JSON.parse(form.config)));
         setEditing(null);
     };
 
@@ -242,6 +279,10 @@ function ServiceEditor({ services, menu, setServices }) {
                                 </small>
 
                                 <small>
+
+                                    <input type="checkbox" id="api_key" disabled={true} checked={service?.swagger && JSON.stringify(service.swagger).includes("local")} />
+                                    <label htmlFor="api_key"> Local Definition</label>
+                                    <br />
                                     <input type="checkbox" id="gateway_key" disabled={true} checked={"gateway_api" in (service?.config || {})} />
                                     <label htmlFor="gateway_key"> Gateway key Required</label>
                                     <br />
@@ -317,7 +358,7 @@ function ServiceEditor({ services, menu, setServices }) {
 
                         <label>
                             Config:
-                            <textarea 
+                            <textarea
                                 value={form.config}
                                 onChange={(e) => setForm({ ...form, config: e.target.value })}
                             />
@@ -369,17 +410,24 @@ const App = () => {
     //console.log(services);
 
     useEffect(() => {
-        fetch("/services")
-            .then((res) => res.json())
-            .then((json_services) => {
-                setServices(new cls_services(json_services));
-            })
-            .catch((err) => console.error("Failed loading services:", err));
-    }, []); // 👈 runs once when component mounts
+        async function loadServices() {
+            try {
+                const res = await fetch("/services");
+                const json_services = await res.json();
+
+                const serviceInstance = await cls_services.create(json_services); // wait here
+                setServices(serviceInstance);
+            } catch (err) {
+                console.error("Failed loading services:", err);
+            }
+        }
+
+        loadServices();
+    }, []);
 
     return (
         <div className="app">
-            <Sidebar setMenu={setMenu} />
+            <Sidebar setMenu={setMenu} services={services} />
             <div className="main">
                 <Topbar title={title} />
                 <Panel services={services} menu={menu} />
