@@ -179,7 +179,7 @@ const Panel = ({ services, menu }) => {
 
 function ServiceEditor({ services, menu, setServices }) {
     const [editing, setEditing] = useState(null);
-    const [form, setForm] = useState({ name: "", endpoint: "", swagger: "", config: "" });
+    const [form, setForm] = useState({ name: "", endpoint: "", swagger: "", config: "{}" });
     const [status, setStatus] = useState("");
 
     if (!services || services.length === 0) return null;
@@ -197,10 +197,10 @@ function ServiceEditor({ services, menu, setServices }) {
     const startCreate = () => {
         setEditing("new");
         setForm({
-            title: "newtides",
-            base: "https://sebright.uksouth.cloudapp.azure.com/api/TidesSDK/",
-            swagger: "https://sebright.uksouth.cloudapp.azure.com/api/TidesSDK/swagger/docs/v1",
-            config: "...",
+            title: "test",
+            base: "https://test/endpoint/",
+            swagger: "https://test/endpoint/openapi.json",
+            config: "{}"
         });
     };
 
