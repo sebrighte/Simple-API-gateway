@@ -81,25 +81,25 @@ The gateway:
 
     project/
     │
-    ├── gateway.py             # Main FastAPI gateway Python 3
-    ├── services.json          # Services configuration JSON
-    ├── api_key.txt            # Gateway API key Text
-    ├── dockerfile             # Create docker image for Gateway
-    ├── app.lo                 # Log all Gateway requests, info and issues
-    ├── instructions.txt       # Scripts for environments and deployment
-    ├── orig.py                # original code by Franklyn Dunbar
-    ├── versions.py          # Version definition
+    ├── gateway.py               # Main FastAPI gateway Python 3
+    ├── services.json            # Services configuration JSON
+    ├── api_key.txt              # Gateway API key Text
+    ├── dockerfile               # Create docker image for Gateway
+    ├── app.lo                   # Log all Gateway requests, info and issues
+    ├── instructions.txt         # Scripts for environments and deployment
+    ├── orig.py                  # original code by Franklyn Dunbar
+    ├── versions.py              # Version definition
     │
     ├── templates/
-    │   ├── index.html         # Default page
-    │   ├── swagger.html
-    │   └── swaggerOpenAPI.html
+    │   ├── index.html           # Default page
+    │   ├── swagger.html         # Swagger for hosted api
+    │   └── swaggerOpenAPI.html  # Swagger for passed openapi.json
     │
     ├── static/
     │   ├── OpenAPI Specifications
     │       ├── httpbin.json    # Worling example OpenAPI Spec
     │   ├── [images *.*]
-    │   ├── javasript files
+    │   ├── javasript files     #The main page code source is index.js
     │   ├── CSS files
     │
     ├── app.log
