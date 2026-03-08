@@ -280,7 +280,7 @@ function ServiceEditor({ services, menu, setServices }) {
 
                                 <small>
 
-                                    <input type="checkbox" id="api_key" disabled={true} checked={service?.swagger && JSON.stringify(service.swagger).includes("local")} />
+                                    <input type="checkbox" id="api_key" disabled={true} checked={service?.swagger && JSON.stringify(service.swagger).includes("file")} />
                                     <label htmlFor="api_key"> Local Definition</label>
                                     <br />
                                     <input type="checkbox" id="gateway_key" disabled={true} checked={"gateway_api" in (service?.config || {})} />

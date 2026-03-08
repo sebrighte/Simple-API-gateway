@@ -83,8 +83,8 @@ async def serviceSwagger(name):
 
         try:
             # Fetch the OpenAPI schema from the service
-            if "local:" in swagger:
-                file_path = swagger.replace("local:","")
+            if "file://" in swagger:
+                file_path = "static/OpenAPI/" + swagger.replace("file://:","")
                 with open(file_path, "r", encoding="utf-8") as f:
                     openapi_schema = json.load(f)
             else:
