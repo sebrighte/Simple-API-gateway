@@ -164,40 +164,49 @@ services.json
 Example:
 
 ```
-    {
-      "services": 
-      [
-          {
-          "name": "users",
-          "endpoint": "http://localhost:8001",
-          "swagger": "http://localhost:8001/openapi.json",
-          "security": [],
-          "securitySchemes": [],
-          "gateway_api": {
-              "name": "gateway_key",
-              "in": "query",
-              "required": true,
-              "schema": {
-              "type": "string"
-              }
-          }
-      ]
-    }
-```
-Local OenAPI Definition
-```
-    {
-      "services": 
-      [
-          {
+{
+    "services": [
+        {
+            "name": "httpbin",
+            "endpoint": "https://httpbin.org/",
+            "swagger": "https://httpbin.org/spec.json",
+            "state": false,
+            "config": {
+                "gateway_api": {
+                    "name": "gateway_key",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                        "type": "string",
+                        "default": "apikey123"
+                    },
+                    "description": "Gateway API key"
+                }
+            },
+            "title": "httpbin"
+        },
+        {
             "name": "httpbinlocal",
             "endpoint": "https://httpbin.org/",
             "swagger": "local:httpbin.json",
-            "config": {},
-            "title": "httpbinlocal"
-          }
-      ]
-    }
+             "config": {
+                "gateway_api": {
+                    "name": "gateway_key",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                        "type": "string",
+                        "default": "apikey123"
+                    },
+                    "description": "Gateway API key"
+                }
+            }
+        }
+    ],
+    "UI_Version": "20251223/1",
+    "App_Version": "20260305/1",
+    "JSON_Version": "20260301/1"
+}
 
 ```
 
