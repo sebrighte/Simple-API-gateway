@@ -192,7 +192,7 @@ Local OenAPI Definition
           {
             "name": "httpbinlocal",
             "endpoint": "https://httpbin.org/",
-            "swagger": "local:static/OpenAPI/httpbin.json",
+            "swagger": "local:httpbin.json",
             "config": {},
             "title": "httpbinlocal"
           }
