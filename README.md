@@ -125,23 +125,38 @@ pip install fastapi uvicorn httpx jinja2 python-multipart
 Example:
 
     {
-    "services": [
-        {
-        "name": "users",
-        "endpoint": "http://localhost:8001",
-        "swagger": "http://localhost:8001/openapi.json",
-        "security": [],
-        "securitySchemes": [],
-        "gateway_api": {
-            "name": "gateway_key",
-            "in": "query",
-            "required": true,
-            "schema": {
-            "type": "string"
-            }
-        }
-        }
-    ]
+      "services": 
+      [
+          {
+          "name": "users",
+          "endpoint": "http://localhost:8001",
+          "swagger": "http://localhost:8001/openapi.json",
+          "security": [],
+          "securitySchemes": [],
+          "gateway_api": {
+              "name": "gateway_key",
+              "in": "query",
+              "required": true,
+              "schema": {
+              "type": "string"
+              }
+          }
+      ]
+    }
+
+Loca OenAPI Definition
+
+    {
+      "services": 
+      [
+          {
+            "name": "httpbinlocal",
+            "endpoint": "https://httpbin.org/",
+            "swagger": "local:static/OpenAPI/httpbin.json",
+            "config": {},
+            "title": "httpbinlocal"
+          }
+      ]
     }
 
 ------------------------------------------------------------------------
