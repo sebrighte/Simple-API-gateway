@@ -160,7 +160,8 @@ Edit:
 ```
 services.json
 ```
-use a local file where OpenAPI is not exposed and you can host locally but access the API from the public endpoint (e.g. Traccar)
+Note: Use a local file where an OpenAPI specification is not exposed so you can host the OpenAPI locally, but access the API from the published endpoint 
+(e.g. Traccar or httpbin (httpbin) bleow where I use the hoted OpenAPI and also the local OpenAPI (httpbinlocal) definitions
 
 
 Example:
