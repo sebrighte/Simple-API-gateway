@@ -173,7 +173,6 @@ Example:
             "name": "httpbin",
             "endpoint": "https://httpbin.org/",
             "swagger": "https://httpbin.org/spec.json",
-            "state": false,
             "config": {
                 "gateway_api": {
                     "name": "gateway_key",
@@ -185,14 +184,13 @@ Example:
                     },
                     "description": "Gateway API key"
                 }
-            },
-            "title": "httpbin"
+            }
         },
         {
             "name": "httpbinlocal",
             "endpoint": "https://httpbin.org/",
             "swagger": "local:httpbin.json",
-             "config": {
+            "config": {
                 "gateway_api": {
                     "name": "gateway_key",
                     "in": "query",
