@@ -97,9 +97,9 @@ The gateway:
     │
     ├── static/
     │   ├── OpenAPI Specifications
-    │       ├── httpbin.json    # Worling example OpenAPI Spec
+    │       ├── httpbin.json     # Worling example OpenAPI Spec
     │   ├── [images *.*]
-    │   ├── javasript files     #The main page code source is index.js
+    │   ├── javasript files      #The main page code source is index.js
     │   ├── CSS files
     │
     ├── app.log
