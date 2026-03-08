@@ -160,6 +160,8 @@ Edit:
 ```
 services.json
 ```
+use a local file where OpenAPI is not exposed and you can host locally but access the API from the public endpoint (e.g. Traccar)
+
 
 Example:
 
