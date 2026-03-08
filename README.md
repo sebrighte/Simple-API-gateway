@@ -1,9 +1,10 @@
 # Simple API Gateway (FastAPI)
 
-## Overview
+## FastAPI API Gateway
 
-This project is a FastAPI-based API Gateway that aggregates multiple
-backend services into a single unified entry point. 
+A lightweight **API Gateway built with FastAPI** that routes requests to multiple backend services, aggregates their OpenAPI specifications, and provides a unified Swagger interface with a simple React-based UI.
+
+The gateway dynamically loads services from `services.json`, forwards requests to backend APIs, and exposes combined OpenAPI documentation.
 
 I just wanted a simple implementation where i could expose internal and external through one managed interface
 
@@ -21,16 +22,58 @@ This solution allows you to:
 
 ## Features
 
--   Unified API Gateway endpoint
--   Reverse proxy for microservices
--   Gateway API key protection
--   Combined Swagger documentation
--   Dynamic services configuration
--   Swagger UI support
--   Website availability checker
--   Static file support
--   Template rendering
--   Logging
+🚪 **API Gateway Routing**
+Routes incoming requests to configured backend services.
+
+📄 **Unified OpenAPI Documentation**
+Combines OpenAPI specs from multiple services into one interface.
+
+🧭 **Interactive Swagger UI**
+View and test APIs directly through the gateway.
+
+🔑 **Gateway API Key Security**
+Global query parameter (`gateway_key`) required to access endpoints.
+
+⚙️ **Service Registry UI**
+Browser-based UI to add, edit, or remove services.
+
+🔄 **Live Service Configuration**
+Updates `services.json` dynamically via API.
+
+📂 **Local OpenAPI Support**
+Load OpenAPI specs from local JSON files.
+
+🌐 **CORS Enabled**
+Allows cross-origin access for development and UI integration.
+
+------------------------------------------------------------------------
+
+# Architecture
+
+                ┌─────────────────────┐
+                │     Web UI (React)  │
+                │     index.js        │
+                └─────────┬───────────┘
+                          │
+                          ▼
+                ┌─────────────────────┐
+                │   FastAPI Gateway   │
+                │     gateway.py      │
+                └─────────┬───────────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        ▼                 ▼                 ▼
+   Backend API       Backend API       Backend API
+   Service 
+
+------------------------------------------------------------------------
+
+The gateway:
+
+1. Loads services from `services.json`
+2. Fetches each service’s OpenAPI specification
+3. Combines them into a unified API documentation
+4. Routes requests dynamically to the correct backend service
 
 ------------------------------------------------------------------------
 
@@ -45,6 +88,7 @@ This solution allows you to:
     ├── app.lo                 # Log all Gateway requests, info and issues
     ├── instructions.txt       # Scripts for environments and deployment
     ├── orig.py                # original code by Franklyn Dunbar
+    ├── versions.py          # Version definition
     │
     ├── templates/
     │   ├── index.html         # Default page
@@ -102,13 +146,90 @@ Example:
 
 ------------------------------------------------------------------------
 
-## Running the Gateway
+# Installation
 
-python gateway.py
+## 1. Clone the Repository
 
-or
+```bash
+git clone https://github.com/yourrepo/api-gateway.git
+cd api-gateway
+```
 
-uvicorn gateway:app --reload --port 8005
+---
+
+## 2. Install Dependencies
+
+```bash
+pip install fastapi uvicorn httpx requests jinja2
+```
+
+---
+
+## 3. Create API Key
+
+Create a file:
+
+```
+api_key.txt
+```
+
+Example:
+
+```
+apikey123
+```
+
+---
+
+## 4. Configure Services
+
+Edit:
+
+```
+services.json
+```
+
+Example:
+
+```json
+{
+  "services": [
+    {
+      "name": "httpbin",
+      "endpoint": "https://httpbin.org/",
+      "swagger": "https://httpbin.org/spec.json",
+      "config": {
+        "gateway_api": {
+          "name": "gateway_key",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "default": "apikey123"
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+# Access the Gateway
+
+| URL                  | Description                 |
+| -------------------- | --------------------------- |
+| `/`                  | Gateway UI                  |
+| `/docs`              | FastAPI OpenAPI docs        |
+| `/swagger/{service}` | Service-specific Swagger UI |
+| `/openapi/{service}` | Combined OpenAPI schema     |
+| `/services`          | List configured services    |
+| `/version`           | Application version info    |
+
+Example:
+
+```
+http://localhost:8005/
+```
 
 ------------------------------------------------------------------------
 
@@ -139,6 +260,85 @@ Example:
     Response returned to client
 
 ------------------------------------------------------------------------
+
+# Service Configuration
+
+Each service supports:
+
+| Field      | Description                   |
+| ---------- | ----------------------------- |
+| `name`     | Gateway route prefix          |
+| `endpoint` | Backend service base URL      |
+| `swagger`  | OpenAPI spec URL              |
+| `config`   | Security and gateway settings |
+
+---
+
+# Gateway Security
+
+The gateway requires a query parameter:
+
+```
+gateway_key
+```
+
+Example:
+
+```
+GET /service/path?gateway_key=apikey123
+```
+
+The key is read from:
+
+```
+api_key.txt
+```
+
+---
+
+# UI Features
+
+The React UI allows:
+
+* View registered services
+* Add new services
+* Edit service configuration
+* Delete services
+* Test API endpoints
+* View OpenAPI specs
+* Check service availability
+
+---
+
+# Local OpenAPI Support
+
+Place OpenAPI JSON files inside:
+
+```
+static/OpenAPI/
+```
+
+They will appear automatically in the UI.
+
+Example:
+
+```
+static/OpenAPI/weather.json
+```
+
+Access:
+
+```
+/swaggerfile/weather
+```
+
+# Logging
+
+Logs are written to:
+
+```
+app.log
+```
 
 ## Logging
 
@@ -186,26 +386,6 @@ Add authentication
 
 ------------------------------------------------------------------------
 
-## Supported Methods
-
-GET
-
-POST
-
-PUT
-
-PATCH
-
-DELETE
-
-------------------------------------------------------------------------
-
-## Development
-
-uvicorn gateway:app --reload
-
-------------------------------------------------------------------------
-
 ## Limitations
 
 No rate limiting
@@ -216,36 +396,30 @@ Basic security
 
 ------------------------------------------------------------------------
 
-## Future Improvements
+# Future Improvements
 
-JWT auth
+Potential enhancements:
 
-Rate limiting
+* JWT authentication support
+* Rate limiting
+* Service health monitoring
+* Docker deployment
+* Kubernetes support
+* Service caching
+* Load balancing
+* Metrics & observability
 
-Docker
+---
 
-Kubernetes
+# License
 
-Monitoring
+This project uses components under:
 
-------------------------------------------------------------------------
+* FastAPI
+* React
+* httpx
+* requests
 
-## License
+Refer to their respective licenses.
 
-CC BY-SA 4.0
-
-------------------------------------------------------------------------
-
-## Summary
-
-Provides:
-
-Unified gateway
-
-Swagger aggregation
-
-Security
-
-Routing
-
-Microservice support
+---
