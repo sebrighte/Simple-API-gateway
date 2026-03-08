@@ -118,49 +118,6 @@ pip install fastapi uvicorn httpx jinja2 python-multipart
 
 ------------------------------------------------------------------------
 
-## Configuration
-
-### services.json
-
-Example:
-
-    {
-      "services": 
-      [
-          {
-          "name": "users",
-          "endpoint": "http://localhost:8001",
-          "swagger": "http://localhost:8001/openapi.json",
-          "security": [],
-          "securitySchemes": [],
-          "gateway_api": {
-              "name": "gateway_key",
-              "in": "query",
-              "required": true,
-              "schema": {
-              "type": "string"
-              }
-          }
-      ]
-    }
-
-Loca OenAPI Definition
-
-    {
-      "services": 
-      [
-          {
-            "name": "httpbinlocal",
-            "endpoint": "https://httpbin.org/",
-            "swagger": "local:static/OpenAPI/httpbin.json",
-            "config": {},
-            "title": "httpbinlocal"
-          }
-      ]
-    }
-
-------------------------------------------------------------------------
-
 # Installation
 
 ## 1. Clone the Repository
@@ -206,27 +163,42 @@ services.json
 
 Example:
 
-```json
-{
-  "services": [
+```
     {
-      "name": "httpbin",
-      "endpoint": "https://httpbin.org/",
-      "swagger": "https://httpbin.org/spec.json",
-      "config": {
-        "gateway_api": {
-          "name": "gateway_key",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "default": "apikey123"
+      "services": 
+      [
+          {
+          "name": "users",
+          "endpoint": "http://localhost:8001",
+          "swagger": "http://localhost:8001/openapi.json",
+          "security": [],
+          "securitySchemes": [],
+          "gateway_api": {
+              "name": "gateway_key",
+              "in": "query",
+              "required": true,
+              "schema": {
+              "type": "string"
+              }
           }
-        }
-      }
+      ]
     }
-  ]
-}
+```
+Local OenAPI Definition
+```
+    {
+      "services": 
+      [
+          {
+            "name": "httpbinlocal",
+            "endpoint": "https://httpbin.org/",
+            "swagger": "local:static/OpenAPI/httpbin.json",
+            "config": {},
+            "title": "httpbinlocal"
+          }
+      ]
+    }
+
 ```
 
 # Access the Gateway
