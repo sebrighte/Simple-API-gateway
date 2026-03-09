@@ -167,47 +167,42 @@ Note: Use a local file where an OpenAPI specification is not exposed so you can 
 Example:
 
 ```
-{
-    "services": [
-        {
-            "name": "httpbin",
-            "endpoint": "https://httpbin.org/",
-            "swagger": "https://httpbin.org/spec.json",
-            "config": {
-                "gateway_api": {
-                    "name": "gateway_key",
-                    "in": "query",
-                    "required": true,
-                    "schema": {
-                        "type": "string",
-                        "default": "apikey123"
-                    },
-                    "description": "Gateway API key"
-                }
-            }
+[
+  {
+    "name": "httpbin",
+    "endpoint": "https://httpbin.org/",
+    "swagger": "https://httpbin.org/spec.json",
+    "config": {
+      "gateway_api": {
+        "name": "gateway_key",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "default": "apikey123"
         },
-        {
-            "name": "httpbinlocal",
-            "endpoint": "https://httpbin.org/",
-            "swagger": "local:httpbin.json",
-            "config": {
-                "gateway_api": {
-                    "name": "gateway_key",
-                    "in": "query",
-                    "required": true,
-                    "schema": {
-                        "type": "string",
-                        "default": "apikey123"
-                    },
-                    "description": "Gateway API key"
-                }
-            }
-        }
-    ],
-    "UI_Version": "20251223/1",
-    "App_Version": "20260305/1",
-    "JSON_Version": "20260301/1"
-}
+        "description": "Gateway API key"
+      }
+    }
+  },
+  {
+    "name": "httpbinlocal",
+    "endpoint": "https://httpbin.org/",
+    "swagger": "file://:httpbin.json",
+    "config": {
+      "gateway_api": {
+        "name": "gateway_key",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "default": "apikey123"
+        },
+        "description": "Gateway API key"
+      }
+    }
+  }
+]
 
 ```
 
