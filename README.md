@@ -25,7 +25,7 @@ This solution allows you to:
 ## OpenAPI Page
 <img width="1480" height="918" alt="image" src="https://github.com/user-attachments/assets/84216ab2-f969-4a89-9b88-47904c41a4d9" />
 
-## API gateway Call (http://[gatewayip]/httpbin/headers?gateway_key=api_123)
+## API gateway Call - http://[gatewayip]/httpbin/headers?gateway_key=api_123
 <img width="1889" height="296" alt="image" src="https://github.com/user-attachments/assets/afe98518-d555-4e33-bab3-7a2aa39d7ae6" />
 
 
