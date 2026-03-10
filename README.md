@@ -18,6 +18,8 @@ This solution allows you to:
 -   Dynamically update services
 -   Allow local hosting of OpenAPI specification (where they dont exist or you need to modify)
 
+<img width="691" height="911" alt="image" src="https://github.com/user-attachments/assets/ad955a1a-afec-4cd6-a0ec-28d186d61fe2" />
+
 ------------------------------------------------------------------------
 
 ## Features
