@@ -1,56 +1,112 @@
 # Source - https://stackoverflow.com/q
-# Posted by Franklyn Dunbar, modified by community. See post 'Timeline' for change history
+# Posted by Franklyn Dunbar, modified by community
 # Retrieved 2026-01-22, License - CC BY-SA 4.0
 
-from fastapi import FastAPI, HTTPException, Request, Query, Response, APIRouter, Depends, status
+from fastapi import FastAPI, HTTPException, Request, Query, Depends, status
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.security import HTTPBasic
-from urllib.parse import quote, unquote
-import httpx
-import time
 from contextlib import asynccontextmanager
+from urllib.parse import unquote
+from pathlib import Path
+
+import httpx
 import uvicorn
 import json
-import logging, requests
+import logging
+import requests
+
 from versions import *
+
+SERVICES_FILE = "services.json"
+API_KEY_FILE = "api_key.txt"
+LOCAL_OPENAPI_DIR = "static/OpenAPI"
+
+
+# ------------------------------------------------
+# Utility functions
+# ------------------------------------------------
+
+def loadServices():
+    with open(SERVICES_FILE) as f:
+        return json.load(f)["services"]
+
+
+def getAPIKey():
+    with open(API_KEY_FILE) as f:
+        return f.read().strip()
+
+
+def getLocalSpecs():
+    folder = Path(LOCAL_OPENAPI_DIR)
+    return [f.stem for f in folder.glob("*.json")]
+
 
 def url_exists(url):
     try:
-        response = requests.head(url,timeout=1)
-        return response.status_code == 200
+        r = requests.head(url, timeout=1)
+        return r.status_code == 200
     except requests.RequestException:
         return False
 
-def loadServices():
-    with open("services.json") as f:
-        svs = json.load(f)["services"]
-        # for sv in svs:
-        #     if isinstance(sv, dict):
-        #         sv.setdefault("version", appVersion)
-        #if isinstance(svs, dict): sv.setdefault("version", appVersion)
-        # for sv in svs: 
-        #     sv["state"] = url_exists(sv['swagger'])
-        #print(svs)
-        return svs
 
-def getAPIKey():
-    with open("api_key.txt") as f:
-        return f.read().strip()
+async def fetch_openapi(swagger):
 
-def getLocalSpecs():
-    from pathlib import Path
-    folder = Path("static/OpenAPI/")
-    json_files = list(folder.glob("*.json"))
-    return [x.stem for x in json_files]
-    #for file in json_files:
-    #    print(file.stem)
+    if swagger.startswith("file://"):
+        file_path = f"{LOCAL_OPENAPI_DIR}/{swagger.replace('file://','')}"
+        with open(file_path) as f:
+            return json.load(f)
+
+    async with httpx.AsyncClient(verify=False) as client:
+        r = await client.get(swagger)
+        r.raise_for_status()
+        return r.json()
+
+
+# ------------------------------------------------
+# Inject query parameters into OpenAPI operations
+# ------------------------------------------------
+
+def inject_parameters(methods, gateway_api=None, api_key=None):
+
+    for operation in methods.values():
+
+        params = operation.setdefault("parameters", [])
+
+        if gateway_api and not any(
+            p.get("name") == "gateway_key" and p.get("in") == "query"
+            for p in params
+        ):
+            gateway_api["schema"]["default"] = getAPIKey() or False
+            params.append(gateway_api)
+
+        if api_key and not any(
+            p.get("name") == "api_key" and p.get("in") == "query"
+            for p in params
+        ):
+            params.append(api_key)
+
+
+# ------------------------------------------------
+# Service Swagger Builder
+# ------------------------------------------------
 
 async def serviceSwagger(name):
-    time.sleep(5)  # Delay to allow services_json to start
+
+    services = loadServices()
+
+    service = next((s for s in services if s["name"] == name), None)
+
+    if service is None and name == "gateway":
+        return get_openapi(
+            title="API Gateway",
+            version="1.0.0",
+            description="Gateway API",
+            routes=app.routes
+        )
+
     combined_paths = {}
     combined_components = {
         "schemas": {},
@@ -58,97 +114,76 @@ async def serviceSwagger(name):
         "parameters": {},
         "requestBodies": {},
     }
+
     combined_tags = []
 
-    async with httpx.AsyncClient(verify=False) as client:
-        service = next((s for s in loadServices() if s["name"] == name), None)
-        if service is None and name == "gateway": 
-           return get_openapi(
-                title="API Gateway",
-                version="1.0.0",
-                description=f"API Gateway for API Services<br>These are the services for this application",
-                routes=app.routes,
-            )
+    swagger = service.get("swagger")
 
-        name = service.get("name")
-        endpoint = service.get("endpoint")
-        swagger = service.get("swagger")
+    config = service.get("config", {})
 
-        
-        config = service.get("config", None)
-        security = config.get("security", None)
-        securitySchemes = config.get("securitySchemes", None)
-        gateway_api = config.get("gateway_api", None)
-        api_key = config.get("api_key", None)
+    security = config.get("security")
+    securitySchemes = config.get("securitySchemes")
+    gateway_api = config.get("gateway_api")
+    api_key = config.get("api_key")
 
-        try:
-            # Fetch the OpenAPI schema from the service
-            if "file://" in swagger:
-                file_path = "static/OpenAPI/" + swagger.replace("file://:","")
-                with open(file_path, "r", encoding="utf-8") as f:
-                    openapi_schema = json.load(f)
-            else:
-                response = await client.get(swagger)  #+ "/openapi.json")
-                response.raise_for_status()
-                openapi_schema = response.json()
+    try:
 
-            for path, methods in openapi_schema.get("paths", {}).items():
-                new_path = f"/{service['name']}{path}"
+        openapi_schema = await fetch_openapi(swagger)
 
-                for operation in methods.values():
-                    params = operation.setdefault("parameters", [])
+        for path, methods in openapi_schema.get("paths", {}).items():
 
-                    # avoid duplicates
-                    if gateway_api and not any(p.get("name") == "gateway_key" and p.get("in") == "query" for p in params):
-                        gateway_api['schema']['default'] = getAPIKey() or False
-                        params.append(gateway_api)
-                    if api_key and not any(p.get("name") == "api_key" and p.get("in") == "query" for p in params):
-                        params.append(api_key)
+            new_path = f"/{service['name']}{path}"
 
-                combined_paths[new_path] = methods
-                
-            components = openapi_schema.get("components", {})
+            inject_parameters(methods, gateway_api, api_key)
 
-            for comp_type, comp_value in components.items():
-                combined_components.setdefault(comp_type, {})
-                combined_components[comp_type].update(comp_value)
+            combined_paths[new_path] = methods
 
-            # Merge tags (avoid duplicates)
-            if "tags" in openapi_schema:
-                for tag in openapi_schema["tags"]:
-                    if tag not in combined_tags:
-                        combined_tags.append(tag)
+        components = openapi_schema.get("components", {})
 
-        except Exception as e:
-            print(f"Error fetching OpenAPI schema from {service["name"]}: {e}")
+        for comp_type, comp_value in components.items():
+            combined_components.setdefault(comp_type, {})
+            combined_components[comp_type].update(comp_value)
 
-    # Define a custom OpenAPI schema
+        for tag in openapi_schema.get("tags", []):
+            if tag not in combined_tags:
+                combined_tags.append(tag)
+
+    except Exception as e:
+        print(f"Error fetching OpenAPI schema from {service['name']}: {e}")
+
     def custom_openapi():
+
         openapi_schema = get_openapi(
             title="API Gateway",
             version="1.0.0",
-            description=f"API Gateway for API Services<br>Develeoped By Sebright Software<br>Version 1.0.1 <br><br><b><u>gateway OpenAPI Config</u></b><ul><li><b>Security:</b> {security}</li><li><b>Security Scheme:</b> {securitySchemes}</li><li><b>Global ApiKey:</b> {gateway_api}</li></ul>",
+            description="API Gateway for API Services",
             routes=None,
         )
-        if security: openapi_schema["security"] = security
-        if combined_tags: openapi_schema["tags"] = combined_tags
-        if combined_paths: openapi_schema["paths"] = combined_paths
-        if combined_components: openapi_schema["components"] = combined_components
-        if securitySchemes: openapi_schema["components"]["securitySchemes"] = securitySchemes
 
-        #print(openapi_schema["components"]["securitySchemes"])
-        
-        app.openapi_schema = openapi_schema
-        return app.openapi_schema
+        if security:
+            openapi_schema["security"] = security
 
-    #print(f"Created local OpenAPI for {service["name"]}")
-    # Assign the custom OpenAPI schema
+        if combined_tags:
+            openapi_schema["tags"] = combined_tags
+
+        openapi_schema["paths"] = combined_paths
+        openapi_schema["components"] = combined_components
+
+        if securitySchemes:
+            openapi_schema["components"]["securitySchemes"] = securitySchemes
+
+        return openapi_schema
+
     return custom_openapi()
+
+
+# ------------------------------------------------
+# Gateway OpenAPI builder (startup)
+# ------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    time.sleep(5)  # Delay to allow services_json to start
     combined_paths = {}
     combined_components = {
         "schemas": {},
@@ -156,200 +191,184 @@ async def lifespan(app: FastAPI):
         "parameters": {},
         "requestBodies": {},
     }
+
     combined_tags = []
 
-    #https://sebright.uksouth.cloudapp.azure.com:443/api/TidesSDK/swagger/docs/v1
-    async with httpx.AsyncClient(verify=False) as client:
-        for service in loadServices():
-            name = service.get("name")
-            endpoint = service.get("endpoint")
-            swagger = service.get("swagger")
-            security = service.get("security") 
-            securitySchemes = service.get("securitySchemes")
-            gateway_api = service.get("gateway_api") 
-            local = ""
+    for service in loadServices():
 
-            try:
-                #print(url)
-                # Fetch the OpenAPI schema from the service
-                # response = await client.get(swagger)
-                # response.raise_for_status()
-                # openapi_schema = response.json()
-                if "local:" in swagger:
-                    local = "(local definition)"
-                    file_path = swagger.replace("local:","")
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        openapi_schema = json.load(f)
-                else:
-                    response = await client.get(swagger)  #+ "/openapi.json")
-                    response.raise_for_status()
-                    openapi_schema = response.json()
+        try:
 
-                security = security
+            openapi_schema = await fetch_openapi(service["swagger"])
 
-                global_query_param = gateway_api
+            for path, methods in openapi_schema.get("paths", {}).items():
 
-                # Merge paths
-                for path, methods in openapi_schema.get("paths", {}).items():
-                    new_path = f"/{service["name"]}{path}"
-                    combined_paths[new_path] = methods
-                    
-                # Merge components
-                components = openapi_schema.get("components", {})
-                for comp_type, comp_value in components.items():
-                    if comp_type in combined_components:
-                        combined_components[comp_type].update(comp_value)
+                new_path = f"/{service['name']}{path}"
 
-                # Merge tags (avoid duplicates)
-                if "tags" in openapi_schema:
-                    for tag in openapi_schema["tags"]:
-                        if tag not in combined_tags:
-                            combined_tags.append(tag)
+                combined_paths[new_path] = methods
 
-                print(f"Loaded OpenAPI for {service["name"]} {local}")
+            components = openapi_schema.get("components", {})
 
-            except Exception as e:
-                print(f"Error fetching OpenAPI schema from {service["name"]}: {e}")
+            for comp_type, comp_val in components.items():
+                combined_components.setdefault(comp_type, {})
+                combined_components[comp_type].update(comp_val)
 
-    # Define a custom OpenAPI schema
+            for tag in openapi_schema.get("tags", []):
+                if tag not in combined_tags:
+                    combined_tags.append(tag)
+
+            print(f"Loaded OpenAPI for {service['name']}")
+
+        except Exception as e:
+            print(f"Error loading {service['name']}: {e}")
+
     def custom_openapi():
+
         openapi_schema = get_openapi(
             title="API Gateway",
             version="1.0.0",
-            description="API Gateway for API Services<br><br>Develeoped By Sebright Software<br><br>Version 1.0.1",
+            description="API Gateway for API Services",
             routes=app.routes,
         )
+
         openapi_schema["paths"] = combined_paths
         openapi_schema["components"] = combined_components
         openapi_schema["tags"] = combined_tags
-        
-        openapi_schema["components"]["securitySchemes"] = securitySchemes
-
-        #Apply to ALL endpoints
-        openapi_schema["security"] = security
 
         app.openapi_schema = openapi_schema
-        return app.openapi_schema
+        return openapi_schema
 
     app.openapi = custom_openapi
 
     yield
 
-# Global dependency: validates gateway_key
+
+# ------------------------------------------------
+# Security
+# ------------------------------------------------
+
 def require_gateway_key(request: Request):
+
     gateway_key = request.query_params.get("gateway_key")
-    if not gateway_key:
-        raise HTTPException(status_code=400, detail="gateway_key query parameter is required")
+
+    if not gateway_key or gateway_key != getAPIKey():
+        raise HTTPException(status_code=401, detail="gateway_key invalid")
+
     return gateway_key
+
+
+# ------------------------------------------------
+# FastAPI App
+# ------------------------------------------------
 
 app = FastAPI(lifespan=lifespan)
 
-router = APIRouter(dependencies=[Depends(require_gateway_key)])
-app.include_router(router)
+templates = Jinja2Templates(directory="templates")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # OK for local dev
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
+# ------------------------------------------------
+# UI Routes
+# ------------------------------------------------
+
 @app.get("/", response_class=HTMLResponse)
-async def read_item(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
 
 @app.get("/services")
 def services():
     return loadServices()
 
+
 @app.get("/version")
 def version():
-    return {"app": appVersion,
-    "json": jsonVersion,
-    "UI": uiVersion}
+    return {
+        "app": appVersion,
+        "json": jsonVersion,
+        "UI": uiVersion
+    }
 
-@app.post("/update")
-async def update_gateway(request: Request):
-    global services_json
-    payload = await request.json()
-    with open("services.json", "w") as f:
-        json.dump(payload, f, indent=4)
-        #print(payload)
-    return loadServices()
-
-@app.get("/check-website")
-async def check_website(url: str = Query(...)):
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            r = await client.head(url)
-            return {"exists": r.status_code < 400}
-    except Exception:
-        return {"exists": False}
-
-@app.get("/origswagger/{title}/{encoded_url:path}")
-async def get_swagger(title: str, encoded_url: str, request: Request):
-    url = unquote(encoded_url)
-    async with httpx.AsyncClient(verify=False) as client:
-        response = await client.get(url)
-        response.raise_for_status()
-    template = templates.get_template("swaggerOpenAPI.html")
-    html = template.render(
-        name = title,
-        request=request,                 # important for Jinja2
-        openapi=json.dumps(response.json())
-    )
-    return HTMLResponse(content=html, status_code=response.status_code)
-
-@app.get("/openapi/{name}")
-async def getopenapi(name):
-    return await serviceSwagger(name)
-
-@app.get("/swagger/{name}", response_class=HTMLResponse)
-async def get_swagger1(name: str, request: Request):
-    #print(name)
-    template = templates.get_template("swagger.html")
-    html = template.render(
-        request=request,
-        #name=f("/openapi/{name}?gateway_key={getAPIKey()}")
-        name=f"/openapi/{name}"
-    )
-    return html
 
 @app.get("/files")
 async def files():
-    #getLocalSpecs()
     return getLocalSpecs()
 
+
+# ------------------------------------------------
+# Swagger Routes
+# ------------------------------------------------
+
+# @app.get("/openapi/{name}")
+# async def getopenapi(name):
+#     return await serviceSwagger(name)
+
+
+@app.get("/swagger/{name}", response_class=HTMLResponse)
+async def swagger_ui(name: str, request: Request):
+
+    openapi_schema = await serviceSwagger(name)
+
+    html = templates.get_template("ServiceSwagger.html").render(
+        request=request,
+        name=f"/openapi/{name}",
+        openapi=json.dumps(openapi_schema)   # important
+    )
+    return html
+
+
 @app.get("/swaggerfile/{name}", response_class=HTMLResponse)
-async def get_swagger1(name: str, request: Request):
+async def swagger_file(name: str, request: Request):
 
-    template = templates.get_template("swaggerOpenAPI.html")
-
-    with open(f"static/OpenAPI/{name}.json") as f:
+    with open(f"{LOCAL_OPENAPI_DIR}/{name}.json") as f:
         data = json.load(f)
 
-    html = template.render(
+    html = templates.get_template("ServiceSwagger.html").render(
         name=name,
         request=request,
         openapi=json.dumps(data)
     )
 
-    return HTMLResponse(content=html, status_code=200)
+    return HTMLResponse(content=html)
 
-async def forward_request(service_url: str, method: str, path: str, body=None, headers=None):
-    import httpx
+
+@app.get("/origswagger/{title}/{encoded_url:path}")
+async def origswagger(title: str, encoded_url: str, request: Request):
+
+    url = unquote(encoded_url)
+
+    async with httpx.AsyncClient(verify=False) as client:
+        r = await client.get(url)
+        r.raise_for_status()
+
+    html = templates.get_template("swaggerOpenAPI.html").render(
+        name=title,
+        request=request,
+        openapi=json.dumps(r.json())
+    )
+
+    return HTMLResponse(content=html)
+
+
+# ------------------------------------------------
+# Forward Requests
+# ------------------------------------------------
+
+async def forward_request(service_url, method, path, body=None, headers=None):
 
     url = f"{service_url.rstrip('/')}/{path.lstrip('/')}"
 
-    async with httpx.AsyncClient() as client:
+    headers = dict(headers)
+    headers.pop("host", None)
 
-        headers = dict(headers)
-        for k in list(headers.keys()):
-            if k.lower() == "host":
-                headers.pop(k)
+    async with httpx.AsyncClient() as client:
 
         response = await client.request(
             method=method,
@@ -357,88 +376,75 @@ async def forward_request(service_url: str, method: str, path: str, body=None, h
             headers=headers,
             json=body
         )
-    return response  # return the httpx.Response, not FastAPI Response
 
-#security = HTTPBasic()
+    return response
 
-@app.api_route("/{service}/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
-#async def gateway(service: str, path: str, request: Request, credentials = Depends(security)):
+
+# ------------------------------------------------
+# Gateway Proxy
+# ------------------------------------------------
+
+@app.api_route(
+    "/{service}/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    dependencies=[Depends(require_gateway_key)]
+)
 async def gateway(service: str, path: str, request: Request):
-    services = loadServices()
-    service_obj = next((s for s in services if s["name"] == service), None)
+
+    service_obj = next((s for s in loadServices() if s["name"] == service), None)
+
     if not service_obj:
-        return JSONResponse(status_code=404, content={"error": "Service not found"})
+        raise HTTPException(status_code=404, detail="Service not found")
 
-    #print(service_obj.get("securitySchemes", []))
+    body = None
 
-    #print(service_obj.get("config", []))
+    if request.method in ["POST", "PUT", "PATCH"]:
+        body = await request.json()
 
-    servive_config = service_obj.get("config", [])
-
-    if 'basic' in servive_config.get("securitySchemes", []):
-        if credentials is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required )Basic)",
-                headers={"WWW-Authenticate": "Basic"}
-            )
-
-    # if "bearerAuth" in servive_config.get("securitySchemes", {}):
-    #     auth_header = request.headers.get("Authorization")
-    #     #print(auth_header)
-    #     if not auth_header or not auth_header.startswith("Bearer "):
-    #         raise HTTPException(
-    #             status_code=status.HTTP_401_UNAUTHORIZED,
-    #             detail="Authentication required (JWT)",
-    #             headers={"WWW-Authenticate": "Bearer"},
-    #         )
-
-    service_url = service_obj.get("endpoint") or ""
-
-    body = await request.json() if request.method in ["POST", "PUT", "PATCH"] else None
     headers = dict(request.headers)
 
-    if 'authorization' in headers:
-        headers['Authorization'] = headers.pop('authorization')
-
-    #print(service_url, headers)
+    if "authorization" in headers:
+        headers["Authorization"] = headers.pop("authorization")
 
     response = await forward_request(
-        service_url,
+        service_obj["endpoint"],
         request.method,
         f"{path}?{request.url.query}",
         body,
         headers
     )
 
-    gateway_key = request.query_params.get("gateway_key")  # safe, returns None if missing
-
-    if not gateway_key or gateway_key != getAPIKey():
-        raise HTTPException(status_code=401, detail="gateway_key query parameter is invlaid")
-
     try:
         data = response.json()
-    except (json.JSONDecodeError, ValueError):
+    except Exception:
         data = {
-            #"error": "Upstream did not return valid JSON",
-            #"status": getattr(response, "status_code", None),
-            "url": f"{request.method} {service_url}{path}?{request.url.query}",
-            "response": response.text,
-            **({"body": body} if body is not None else {}),
-            #"headers": headers
+            "url": f"{request.method} {service_obj['endpoint']}/{path}",
+            "response": response.text
         }
 
     return JSONResponse(status_code=response.status_code, content=data)
 
+
+# ------------------------------------------------
+# Logging
+# ------------------------------------------------
+
 logging.basicConfig(
     filename="app.log",
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format="%(asctime)s [%(levelname)s] %(message)s",
 )
 
+
+# ------------------------------------------------
+# Run
+# ------------------------------------------------
+
 if __name__ == "__main__":
-    uvicorn.run("gateway:app",
-                reload="true",
-                host="0.0.0.0",
-                port=8005,
-                log_level="debug")
+    uvicorn.run(
+        "gateway:app",
+        host="0.0.0.0",
+        port=8005,
+        reload=True,
+        log_level="debug"
+    )

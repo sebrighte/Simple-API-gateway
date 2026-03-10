@@ -214,7 +214,7 @@ function ServiceEditor({ services, menu, setServices }) {
     };
 
     const remove = (title) => {
-        if (confirm("Are you sure you want to continue?")) {
+        if (confirm(`Are you sure you want to Delete the '${title}' Service?`)) {
             setServices(services.removeService(title));
             setEditing(null);
         } else {
@@ -237,9 +237,9 @@ function ServiceEditor({ services, menu, setServices }) {
             .then((res) => res.json())
             .then((data) => {
                 if (data.exists) {
-                    setStatus("✅");
+                    setStatus(" - ✅");
                 } else {
-                    setStatus("❌");
+                    setStatus(" - ❌");
                 }
             }
             );
@@ -297,22 +297,18 @@ function ServiceEditor({ services, menu, setServices }) {
                             <div className="service-actions">
                                 <button
                                     className="button-4"
-                                    onClick={() => startEdit(service.name)}
-                                >
-                                    Edit
+                                    onClick={() => startEdit(service.name)}>
+                                    Edit Service
                                 </button>
                                 <button
                                     className="button-4"
-                                    onClick={() => remove(service.name)}
-                                >
-                                    Delete
+                                    onClick={() => openSwagger(service.name)}>
+                                    OpenAPI
                                 </button>
                                 <button
                                     className="button-4"
-
-                                    onClick={() => openSwagger(service.name)}
-                                >
-                                    Test
+                                    onClick={() => remove(service.name)}>
+                                    Delete Service
                                 </button>
                             </div>
                         </li>
@@ -330,7 +326,6 @@ function ServiceEditor({ services, menu, setServices }) {
                                 ? "Create Service"
                                 : "Edit '" + form.title + "' Service"}
                         </h3>
-
                         <label>
                             Name:
                             <input
@@ -367,15 +362,18 @@ function ServiceEditor({ services, menu, setServices }) {
                         <div className="editor-actions">
                             {editing === "new" ? (
                                 <button className="button-4" onClick={add}>
-                                    Save
+                                    Save Service
                                 </button>
                             ) : (
                                 <button className="button-4" onClick={update}>
-                                    Update
+                                    Update Service
                                 </button>
                             )}
-                            <button className="button-4" onClick={() => setEditing(null)}>
-                                Cancel
+                            <button
+                                className="button-4"
+                                onClick={() => checkStatus(form.base, form.swagger)}
+                            >
+                                Check Endpoint{status}
                             </button>
                             <button
                                 className="button-4"
@@ -383,13 +381,10 @@ function ServiceEditor({ services, menu, setServices }) {
                                     openOrigSwagger(form.title, form.base, form.swagger)
                                 }
                             >
-                                Get Swagger
+                                OpenAPI
                             </button>
-                            <button
-                                className="button-4"
-                                onClick={() => checkStatus(form.base, form.swagger)}
-                            >
-                                Check Endpoint{status}
+                            <button className="button-4" onClick={() => setEditing(null)}>
+                                Cancel
                             </button>
                         </div>
                     </div>
