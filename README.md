@@ -19,6 +19,8 @@ This solution allows you to:
 -   Allow local hosting of OpenAPI specification (where they dont exist or you need to modify)
 
 <img width="691" height="911" alt="image" src="https://github.com/user-attachments/assets/4ad49405-6c75-4b90-9731-36c0cfd46bb4" />
+<img width="1480" height="918" alt="image" src="https://github.com/user-attachments/assets/84216ab2-f969-4a89-9b88-47904c41a4d9" />
+
 
 ------------------------------------------------------------------------
 
