@@ -21,7 +21,8 @@ This solution allows you to:
 ## Images
 # Home Page
 <img width="1283" height="917" alt="image" src="https://github.com/user-attachments/assets/057426fc-0a01-45cb-a861-8375ff4d15e2" />
-# OpwnAPI Page
+
+# OpenAPI Page
 <img width="1480" height="918" alt="image" src="https://github.com/user-attachments/assets/84216ab2-f969-4a89-9b88-47904c41a4d9" />
 
 ------------------------------------------------------------------------
