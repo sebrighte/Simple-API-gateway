@@ -172,8 +172,7 @@ Edit:
 services.json
 ```
 Note: Use a local file where an OpenAPI specification is not exposed so you can host the OpenAPI locally, but access the API from the published endpoint 
-(e.g. Traccar or httpbin (httpbin) bleow where I use the hoted OpenAPI and also the local OpenAPI (httpbinlocal) definitions
-
+(e.g. Traccar or httpbin (httpbin) below where I use a self hosted OpenAPIfile with the local OpenAPI (httpbinlocal) definitions
 
 Example:
 
