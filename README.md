@@ -134,7 +134,7 @@ pip install fastapi uvicorn httpx jinja2 python-multipart
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourrepo/api-gateway.git
+gh repo clone sebrighte/Simple-API-gateway
 cd api-gateway
 ```
 
